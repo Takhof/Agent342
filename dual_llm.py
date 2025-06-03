@@ -41,12 +41,14 @@ def メモリー読み込み():
                 ))
 
 # 文章生成関数
-def generate_response(model, prompt, tokenizer, max_length=100):
+def generate_response(model, prompt, tokenizer, max_new_tokens=100):
     input_ids = tokenizer.encode(prompt, return_tensors="pt")
     with torch.no_grad():
         output = model.generate(
-            input_ids, max_length=max_length,
-            pad_token_id=tokenizer.eos_token_id
+            input_ids,
+            max_new_tokens=max_new_tokens,
+            pad_token_id=tokenizer.eos_token_id,
+            attention_mask=torch.ones_like(input_ids)
         )
     return tokenizer.decode(output[0], skip_special_tokens=True)
 
