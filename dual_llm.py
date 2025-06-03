@@ -80,8 +80,16 @@ def 対話する():
             break
 
         # 表の応答
-        surface_prompt = f"{user_input}\n"
-        表出力 = generate_response(model_surface, surface_prompt, tokenizer)
+        surface_prompt = f"""以下はユーザーとAIの会話です。
+ユーザー: {user_input}
+AI:"""
+
+        思い出 = 思い出す(user_input)
+        におわせ = ""
+        if 思い出:
+            におわせ = f"（以前も似た話があったような気がします…）"
+
+        表出力 = generate_response(model_surface, surface_prompt + "\n" + におわせ, tokenizer)
 
         # 裏の思考
         deep_prompt = f"""ユーザーの発言: {user_input}
