@@ -1,15 +1,14 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM
+import openai
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import torch
 import json
 import os
+from dotenv import load_dotenv
 
-# モデルとトークナイザー
-surface_model_name = "gpt2"
-tokenizer = AutoTokenizer.from_pretrained(surface_model_name)
-model_surface = AutoModelForCausalLM.from_pretrained(surface_model_name)
-model_deep = AutoModelForCausalLM.from_pretrained(surface_model_name)
+# 環境変数からAPIキーを読み込む
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # 裏メモリー用の埋め込みモデルと記憶
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
@@ -40,21 +39,18 @@ def メモリー読み込み():
                     torch.tensor(item["vec"])
                 ))
 
-# 文章生成関数
-def generate_response(model, prompt, tokenizer, max_new_tokens=100):
-    input_ids = tokenizer.encode(prompt, return_tensors="pt")
-    with torch.no_grad():
-        output = model.generate(
-            input_ids,
-            max_new_tokens=max_new_tokens,
-            pad_token_id=tokenizer.eos_token_id,
-            attention_mask=torch.ones_like(input_ids),
-            do_sample=True,
-            temperature=0.7,
-            top_p=0.9,
-            repetition_penalty=1.2
-        )
-    return tokenizer.decode(output[0], skip_special_tokens=True)
+# GPT-3.5での応答生成
+def generate_openai(prompt):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "あなたは親しみやすく自然なAIです。"},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=200,
+    )
+    return response["choices"][0]["message"]["content"]
 
 # 記録保存
 def 記録する(ユーザー入力, 表出力, 裏出力):
@@ -89,13 +85,13 @@ AI:"""
         if 思い出:
             におわせ = f"（以前も似た話があったような気がします…）"
 
-        表出力 = generate_response(model_surface, surface_prompt + "\n" + におわせ, tokenizer)
+        表出力 = generate_openai(surface_prompt + "\n" + におわせ)
 
         # 裏の思考
         deep_prompt = f"""ユーザーの発言: {user_input}
 表の返答: {表出力}
 この会話の裏でAIが考えていることを、感情・観察・意図の視点で記述してください："""
-        裏出力 = generate_response(model_deep, deep_prompt, tokenizer)
+        裏出力 = generate_openai(deep_prompt)
 
         記録する(user_input, 表出力, 裏出力)
 
