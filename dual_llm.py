@@ -1,14 +1,14 @@
-import openai
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
 import torch
 import json
 import os
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+import openai
 from dotenv import load_dotenv
 
 # 環境変数からAPIキーを読み込む
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # 裏メモリー用の埋め込みモデルと記憶
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
@@ -40,8 +40,9 @@ def メモリー読み込み():
                 ))
 
 # GPT-3.5での応答生成
+
 def generate_openai(prompt):
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "あなたは親しみやすく自然なAIです。"},
@@ -50,7 +51,7 @@ def generate_openai(prompt):
         temperature=0.7,
         max_tokens=200,
     )
-    return response["choices"][0]["message"]["content"]
+    return response.choices[0].message.content
 
 # 記録保存
 def 記録する(ユーザー入力, 表出力, 裏出力):
