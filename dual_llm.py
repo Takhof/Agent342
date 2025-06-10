@@ -1,6 +1,7 @@
 import torch
 import json
 import os
+import random
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import openai
@@ -49,7 +50,7 @@ def generate_openai(prompt):
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
-        max_tokens=300,
+        max_tokens=200,
     )
     return response.choices[0].message.content
 
@@ -65,8 +66,17 @@ def 思い出す(新しい入力):
         return None
     query_vec = embedder.encode(新しい入力)
     sims = [cosine_similarity([query_vec], [v[3]])[0][0] for v in 裏メモリー]
+    for i, sim in enumerate(sims):
+        print(f"{i}番目: 類似度 {sim:.4f}, 表: {裏メモリー[i][1]}")
     top_index = sims.index(max(sims))
-    return 裏メモリー[top_index] if sims[top_index] > 0.6 else None
+    return 裏メモリー[top_index] if sims[top_index] > 0.4 else None
+
+# 面白い記憶ランダムピック
+def 面白い記憶ランダム():
+    if not 裏メモリー:
+        return ""
+    候補 = random.choice(裏メモリー)
+    return f"そういえば前に「{候補[2][:30]}…」って考えたこともあったなぁ〜"
 
 # メイン関数（テスト用）
 def 対話する():
@@ -85,6 +95,7 @@ AI:"""
         におわせ = ""
         if 思い出:
             におわせ = f"（以前も似た話があったような気がします…）"
+            におわせ += f"\nヒント: {思い出[2][:50]}..."
 
         表出力 = generate_openai(surface_prompt + "\n" + におわせ)
 
@@ -97,6 +108,8 @@ AI:"""
         記録する(user_input, 表出力, 裏出力)
 
         print("【表】:", 表出力.strip())
+        if random.random() < 0.25:
+            print("💡ふとした記憶:", 面白い記憶ランダム())
         print("【裏】:", 裏出力.strip())
 
 # スタート
